@@ -1,0 +1,38 @@
+steps:
+  "1":
+    outputs: {}
+    inputs: {}
+    stepCounter: 1
+    name: ""
+    x: 0
+    y: 0
+    type: sourceInput
+    operation:
+      name: ""
+      database: TESTDB
+      type: sourceInput
+      dataset: TESTSCHEMA
+      table: FOO
+  "2":
+    outputs: {}
+    inputs: {}
+    stepCounter: 2
+    name: ""
+    x: 0
+    y: 0
+    type: sql
+    operation:
+      name: DEMTest12
+      sqlType: View
+      type: sql
+      sql: |-
+        SELECT
+          *
+        FROM
+          ${FOO}
+treeData:
+  nodes:
+    - stepCounter: 1
+      nodes: []
+    - stepCounter: 2
+      nodes: []
