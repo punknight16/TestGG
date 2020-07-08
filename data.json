@@ -30,9 +30,84 @@ steps:
           *
         FROM
           ${FOO}
+  "3":
+    outputs: {}
+    inputs: {}
+    stepCounter: 3
+    name: ""
+    x: 0
+    y: 0
+    type: sourceInput
+    operation:
+      name: ""
+      database: PC_FIVETRAN_DB
+      type: sourceInput
+      dataset: GOOGLE_ANALYTICS
+      table: GOOGLE_ANALYTICS
+  "4":
+    outputs: {}
+    inputs: {}
+    stepCounter: 4
+    name: ""
+    x: 0
+    y: 0
+    type: sql
+    operation:
+      name: pageViews
+      sqlType: View
+      type: sql
+      sql: |-
+        SELECT
+          DATE AS DATE,
+          UNIQUE_PAGEVIEWS AS UNIQUE_PAGEVIEWS
+        FROM
+          ${GOOGLE_ANALYTICS}
+  "5":
+    outputs: {}
+    inputs: {}
+    stepCounter: 5
+    name: ""
+    x: 0
+    y: 0
+    type: sql
+    operation:
+      name: CohortAnalysis
+      sqlType: Table
+      type: sql
+      sql: |-
+        SELECT
+          DATE AS DATE,
+          WEEK(DATE) AS WK,
+          UNIQUE_PAGEVIEWS AS UNIQUE_PAGEVIEWS
+        FROM
+          ${pageViews}
+  "6":
+    outputs: {}
+    inputs: {}
+    stepCounter: 6
+    name: ""
+    x: 0
+    y: 0
+    type: sql
+    operation:
+      name: GroupByWeek
+      sqlType: View
+      type: sql
+      sql: |-
+        SELECT
+          WK,
+          SUM(UNIQUE_PAGEVIEWS) AS WEEKLYVIEWS
+        FROM
+          ${CohortAnalysis}
+        GROUP BY WK
+        ORDER BY WK
 treeData:
   nodes:
-    - stepCounter: 1
+    - stepCounter: 3
       nodes: []
-    - stepCounter: 2
+    - stepCounter: 4
+      nodes: []
+    - stepCounter: 5
+      nodes: []
+    - stepCounter: 6
       nodes: []
