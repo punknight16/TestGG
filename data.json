@@ -14,58 +14,67 @@ steps:
       dataset: GOOGLE_ANALYTICS
       table: GOOGLE_ANALYTICS
   "2":
-    type: sourceInput
-    operation:
-      database: PC_FIVETRAN_DB
-      dataset: GITHUB
-      table: COMMIT
-      name: ""
-      type: sourceInput
-    inputs: {}
     outputs: {}
-    name: ""
+    inputs: {}
     stepCounter: 2
+    name: ""
     x: 0
     y: 0
+    type: sourceInput
+    operation:
+      name: ""
+      database: PC_FIVETRAN_DB
+      type: sourceInput
+      dataset: GITHUB
+      table: COMMIT
   "3":
+    outputs: {}
+    inputs: {}
+    stepCounter: 3
+    name: ""
+    x: 0
+    y: 0
     type: sql
     operation:
+      name: uniquePageViews
+      sqlType: Table
+      type: sql
       sql: |-
         SELECT
           DATE AS DATE,
           UNIQUE_PAGEVIEWS AS UNIQUE_PAGEVIEWS
         FROM
           ${GOOGLE_ANALYTICS}
-      name: uniquePageViews
-      sqlType: Table
-      type: sql
-    inputs: {}
+  "4":
     outputs: {}
+    inputs: {}
+    stepCounter: 4
     name: ""
-    stepCounter: 3
     x: 0
     y: 0
-  "4":
     type: sql
     operation:
+      name: COMMITS_BY_DATE
+      sqlType: Table
+      type: sql
       sql: |-
         SELECT
           TO_DATE(COMMITTER_DATE) AS DATE1,
           MESSAGE AS MESSAGE
         FROM
           ${COMMIT}
-      name: COMMITS_BY_DATE
-      sqlType: Table
-      type: sql
-    inputs: {}
+  "5":
     outputs: {}
+    inputs: {}
+    stepCounter: 5
     name: ""
-    stepCounter: 4
     x: 0
     y: 0
-  "5":
     type: sql
     operation:
+      name: VIEWS_BY_WK
+      sqlType: Table
+      type: sql
       sql: |-
         SELECT
           WEEK(DATE) AS WK1,
@@ -74,18 +83,18 @@ steps:
           ${uniquePageViews}
           GROUP BY WK1
           ORDER BY WK1
-      name: VIEWS_BY_WK
-      sqlType: Table
-      type: sql
-    inputs: {}
+  "6":
     outputs: {}
+    inputs: {}
+    stepCounter: 6
     name: ""
-    stepCounter: 5
     x: 0
     y: 0
-  "6":
     type: sql
     operation:
+      name: COMMITS_BY_WK
+      sqlType: View
+      type: sql
       sql: |-
         WITH query_1 AS (
         SELECT
@@ -104,18 +113,18 @@ steps:
           FROM query_1
           WHERE MESSAGE_RANK = 1
           ORDER BY WK2
-      name: COMMITS_BY_WK
-      sqlType: View
-      type: sql
-    inputs: {}
+  "7":
     outputs: {}
+    inputs: {}
+    stepCounter: 7
     name: ""
-    stepCounter: 6
     x: 0
     y: 0
-  "7":
     type: sql
     operation:
+      name: WK_JOIN
+      sqlType: Table
+      type: sql
       sql: |-
         SELECT
           VIEWS_BY_WK.WK1 AS WK,
@@ -125,18 +134,18 @@ steps:
           ${VIEWS_BY_WK} AS VIEWS_BY_WK
           INNER JOIN ${COMMITS_BY_WK} AS COMMITS_BY_WK ON VIEWS_BY_WK.WK1
           = COMMITS_BY_WK.WK2
-      name: WK_JOIN
-      sqlType: Table
-      type: sql
-    inputs: {}
+  "8":
     outputs: {}
+    inputs: {}
+    stepCounter: 8
     name: ""
-    stepCounter: 7
     x: 0
     y: 0
-  "8":
     type: sql
     operation:
+      name: LAST_TEN_COMMITS
+      sqlType: Table
+      type: sql
       sql: |-
         SELECT
           DATE1 AS DATE1,
@@ -145,13 +154,130 @@ steps:
           ${COMMITS_BY_DATE}
           ORDER BY DATE1 DESC
           LIMIT 10
-      name: LAST_TEN_COMMITS
+  "9":
+    outputs: {}
+    inputs: {}
+    stepCounter: 9
+    name: ""
+    x: 0
+    y: 0
+    type: sourceInput
+    operation:
+      name: ""
+      database: PC_FIVETRAN_DB
+      type: sourceInput
+      dataset: SLACK_MESSAGES
+      table: SLACK_MESSAGES
+  "10":
+    type: sourceInput
+    operation:
+      database: PC_FIVETRAN_DB
+      dataset: GITHUB
+      table: USER
+      name: ""
+      type: sourceInput
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 10
+    x: 0
+    y: 0
+  "11":
+    type: sourceInput
+    operation:
+      database: PC_FIVETRAN_DB
+      dataset: GITHUB
+      table: USER_EMAIL
+      name: ""
+      type: sourceInput
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 11
+    x: 0
+    y: 0
+  "12":
+    type: sql
+    operation:
+      sql: |-
+        SELECT
+          COMMIT.SHA AS SHA,
+          COMMIT.REPOSITORY_ID AS REPOSITORY_ID,
+          COMMIT.COMMITTER_DATE AS COMMITTER_DATE,
+          COMMIT.AUTHOR_EMAIL AS AUTHOR_EMAIL,
+          COMMIT.AUTHOR_NAME AS AUTHOR_NAME,
+          COMMIT.COMMITTER_EMAIL AS COMMITTER_EMAIL,
+          COMMIT.COMMITTER_NAME AS COMMITTER_NAME,
+          COMMIT.AUTHOR_DATE AS AUTHOR_DATE,
+          COMMIT.MESSAGE AS MESSAGE,
+          USER.ID AS ID,
+          USER.LOGIN AS LOGIN,
+          USER.TYPE AS TYPE,
+          USER.SITE_ADMIN AS SITE_ADMIN,
+          USER.NAME AS NAME1,
+          USER.COMPANY AS COMPANY,
+          USER.BLOG AS BLOG,
+          USER.LOCATION AS LOCATION,
+          USER.HIREABLE AS HIREABLE,
+          USER.BIO AS BIO,
+          USER.CREATED_AT AS CREATED_AT,
+          USER.UPDATED_AT AS UPDATED_AT,
+          USER_EMAIL.EMAIL AS EMAIL,
+          USER_EMAIL.USER_ID AS USER_ID,
+          USER_EMAIL.NAME AS NAME2
+        FROM
+          ${USER_EMAIL} AS USER_EMAIL
+          INNER JOIN ${COMMIT} AS COMMIT ON USER_EMAIL.EMAIL
+          = COMMIT.AUTHOR_EMAIL
+          INNER JOIN ${USER} AS USER ON COMMIT.AUTHOR_NAME
+          = USER.LOGIN
+      name: JOIN_COMMIT_ON_EMAIL_NAME
       sqlType: Table
       type: sql
     inputs: {}
     outputs: {}
     name: ""
-    stepCounter: 8
+    stepCounter: 12
+    x: 0
+    y: 0
+  "13":
+    type: sql
+    operation:
+      sql: |-
+        SELECT
+          AUTHOR_EMAIL AS AUTHOR_EMAIL,
+          AUTHOR_DATE AS AUTHOR_DATE,
+          MESSAGE AS MESSAGE
+        FROM
+          ${JOIN_COMMIT_ON_EMAIL_NAME}
+      name: FILTER_COMMIT
+      sqlType: Table
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 13
+    x: 0
+    y: 0
+  "14":
+    type: sql
+    operation:
+      sql: |-
+        SELECT
+          AUTHOR_EMAIL AS AUTHOR_EMAIL,
+          COUNT(*) AS C,
+          MONTH(AUTHOR_DATE) AS MO
+        FROM
+          ${FILTER_COMMIT}
+          GROUP BY AUTHOR_EMAIL, MO
+          ORDER BY MO
+      name: COUNT_COMMITS
+      sqlType: Table
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 14
     x: 0
     y: 0
 treeData:
@@ -171,4 +297,14 @@ treeData:
     - stepCounter: 7
       nodes: []
     - stepCounter: 8
+      nodes: []
+    - stepCounter: 10
+      nodes: []
+    - stepCounter: 11
+      nodes: []
+    - stepCounter: 12
+      nodes: []
+    - stepCounter: 13
+      nodes: []
+    - stepCounter: 14
       nodes: []
