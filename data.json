@@ -9,100 +9,157 @@ steps:
     type: sourceInput
     operation:
       name: ""
-      database: TESTDB
-      type: sourceInput
-      dataset: TESTSCHEMA
-      table: FOO
-  "2":
-    outputs: {}
-    inputs: {}
-    stepCounter: 2
-    name: ""
-    x: 0
-    y: 0
-    type: sql
-    operation:
-      name: DEMTest12
-      sqlType: View
-      type: sql
-      sql: |-
-        SELECT
-          *
-        FROM
-          ${FOO}
-  "3":
-    outputs: {}
-    inputs: {}
-    stepCounter: 3
-    name: ""
-    x: 0
-    y: 0
-    type: sourceInput
-    operation:
-      name: ""
       database: PC_FIVETRAN_DB
       type: sourceInput
       dataset: GOOGLE_ANALYTICS
       table: GOOGLE_ANALYTICS
-  "4":
-    outputs: {}
+  "2":
+    type: sourceInput
+    operation:
+      database: PC_FIVETRAN_DB
+      dataset: GITHUB
+      table: COMMIT
+      name: ""
+      type: sourceInput
     inputs: {}
-    stepCounter: 4
+    outputs: {}
     name: ""
+    stepCounter: 2
     x: 0
     y: 0
+  "3":
     type: sql
     operation:
-      name: pageViews
-      sqlType: View
-      type: sql
       sql: |-
         SELECT
           DATE AS DATE,
           UNIQUE_PAGEVIEWS AS UNIQUE_PAGEVIEWS
         FROM
           ${GOOGLE_ANALYTICS}
-  "5":
-    outputs: {}
-    inputs: {}
-    stepCounter: 5
-    name: ""
-    x: 0
-    y: 0
-    type: sql
-    operation:
-      name: CohortAnalysis
+      name: uniquePageViews
       sqlType: Table
       type: sql
-      sql: |-
-        SELECT
-          DATE AS DATE,
-          WEEK(DATE) AS WK,
-          UNIQUE_PAGEVIEWS AS UNIQUE_PAGEVIEWS
-        FROM
-          ${pageViews}
-  "6":
-    outputs: {}
     inputs: {}
-    stepCounter: 6
+    outputs: {}
     name: ""
+    stepCounter: 3
     x: 0
     y: 0
+  "4":
     type: sql
     operation:
-      name: GroupByWeek
-      sqlType: View
-      type: sql
       sql: |-
         SELECT
-          WK,
-          SUM(UNIQUE_PAGEVIEWS) AS WEEKLYVIEWS
+          TO_DATE(COMMITTER_DATE) AS DATE1,
+          MESSAGE AS MESSAGE
         FROM
-          ${CohortAnalysis}
-        GROUP BY WK
-        ORDER BY WK
+          ${COMMIT}
+      name: COMMITS_BY_DATE
+      sqlType: Table
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 4
+    x: 0
+    y: 0
+  "5":
+    type: sql
+    operation:
+      sql: |-
+        SELECT
+          WEEK(DATE) AS WK1,
+          SUM(UNIQUE_PAGEVIEWS) AS TOTAL_PAGEVIEWS
+        FROM
+          ${uniquePageViews}
+          GROUP BY WK1
+          ORDER BY WK1
+      name: VIEWS_BY_WK
+      sqlType: Table
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 5
+    x: 0
+    y: 0
+  "6":
+    type: sql
+    operation:
+      sql: |-
+        WITH query_1 AS (
+        SELECT
+          WEEK(DATE1) AS WK2,
+          MESSAGE AS MESSAGE,
+          RANK() OVER (
+            PARTITION BY WK2 
+            ORDER BY LENGTH(MESSAGE) DESC 
+          ) AS MESSAGE_RANK
+        FROM
+          ${COMMITS_BY_DATE}
+        )
+        SELECT
+          WK2 AS WK2,
+          MESSAGE AS MESSAGE
+          FROM query_1
+          WHERE MESSAGE_RANK = 1
+          ORDER BY WK2
+      name: COMMITS_BY_WK
+      sqlType: View
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 6
+    x: 0
+    y: 0
+  "7":
+    type: sql
+    operation:
+      sql: |-
+        SELECT
+          VIEWS_BY_WK.WK1 AS WK,
+          VIEWS_BY_WK.TOTAL_PAGEVIEWS AS TOTAL_PAGEVIEWS,
+          COMMITS_BY_WK.MESSAGE AS MESSAGE
+        FROM
+          ${VIEWS_BY_WK} AS VIEWS_BY_WK
+          INNER JOIN ${COMMITS_BY_WK} AS COMMITS_BY_WK ON VIEWS_BY_WK.WK1
+          = COMMITS_BY_WK.WK2
+      name: WK_JOIN
+      sqlType: Table
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 7
+    x: 0
+    y: 0
+  "8":
+    type: sql
+    operation:
+      sql: |-
+        SELECT
+          DATE1 AS DATE1,
+          MESSAGE AS MESSAGE
+        FROM
+          ${COMMITS_BY_DATE}
+          ORDER BY DATE1 DESC
+          LIMIT 10
+      name: LAST_TEN_COMMITS
+      sqlType: Table
+      type: sql
+    inputs: {}
+    outputs: {}
+    name: ""
+    stepCounter: 8
+    x: 0
+    y: 0
 treeData:
   nodes:
+    - stepCounter: 1
+      nodes: []
+    - stepCounter: 2
+      nodes: []
     - stepCounter: 3
       nodes: []
     - stepCounter: 4
@@ -110,4 +167,8 @@ treeData:
     - stepCounter: 5
       nodes: []
     - stepCounter: 6
+      nodes: []
+    - stepCounter: 7
+      nodes: []
+    - stepCounter: 8
       nodes: []
